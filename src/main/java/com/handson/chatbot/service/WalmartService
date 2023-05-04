@@ -1,0 +1,55 @@
+package com.handson.chatbot.service;
+import okhttp3.*;
+import org.springframework.stereotype.Service;
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+@Service
+public class WalmartService extends BaseSearchService{
+    public static final Pattern PRODUCT_PATTERN = Pattern.compile("<span class=\"w_iUH7\">([^<]+)<!-- --> <\\/span>");
+    public static final Pattern PRODUCT_PATTERNPRICE = Pattern.compile("<span class=\"w_iUH7\">current price([^<]+)<\\/span>");
+
+    @Override
+    public String search(String keyword) throws Exception {
+        return parseArtistHtml(getWalmart((keyword)));
+    }
+    private String parseArtistHtml(String html1) {
+        String res = "";
+        Matcher matcher = PRODUCT_PATTERN.matcher(html1);
+        Matcher matcherPrice = PRODUCT_PATTERNPRICE.matcher(html1);
+
+        while (matcher.find() && matcherPrice.find()) {
+            res += matcher.group(1)  +", price:"+ matcherPrice.group(1)+"<br>\n";
+        }
+
+        return res;
+    }
+    private String getWalmart(String keyword) throws IOException {
+        OkHttpClient client = new OkHttpClient().newBuilder()
+                .build();
+        MediaType mediaType = MediaType.parse("text/plain");
+        RequestBody body = RequestBody.create(mediaType, "");
+        Request request = new Request.Builder()
+                .url("https://www.walmart.com/search?q=" + keyword + "")
+                .method("GET", null)
+                .addHeader("authority", "www.walmart.com")
+                .addHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
+                .addHeader("accept-language", "he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7")
+                .addHeader("cache-control", "max-age=0")
+                .addHeader("cookie", "vtc=cugj8sKWSq6sWGlIdWFgII; ACID=93e31354-6e2a-4934-9970-c8a573114246; hasACID=true; assortmentStoreId=3081; hasLocData=1; _pxhd=b79fb2d996b3e7d88b52eae204d96802ead72a1d5e33b9c08b6b419353755476:cb7ebbe1-90f7-11ed-97a3-6b68514b7368; _astc=8ec04d0252de7194f1d941f0b22f671c; adblocked=false; TBV=7; pxcts=cccafc12-90f7-11ed-b078-6c64676c7665; _pxvid=cb7ebbe1-90f7-11ed-97a3-6b68514b7368; brwsr=bdb02d8a-9267-11ed-b3f5-1fb4dbc425b7; locGuestData=eyJpbnRlbnQiOiJTSElQUElORyIsImlzRXhwbGljaXQiOmZhbHNlLCJzdG9yZUludGVudCI6IlBJQ0tVUCIsIm1lcmdlRmxhZyI6ZmFsc2UsImlzRGVmYXVsdGVkIjp0cnVlLCJzdG9yZVNlbGVjdGlvblR5cGUiOiJERUZBVUxURUQiLCJwaWNrdXAiOnsibm9kZUlkIjoiMzA4MSIsInRpbWVzdGFtcCI6MTY3MzM2Mjk0NjQ0NX0sInNoaXBwaW5nQWRkcmVzcyI6eyJpZCI6bnVsbCwidGltZXN0YW1wIjoxNjczMzYyOTQ2NDQ1LCJjcmVhdGVUaW1lc3RhbXAiOm51bGwsInR5cGUiOiJwYXJ0aWFsLWxvY2F0aW9uIiwiZ2lmdEFkZHJlc3MiOmZhbHNlLCJwb3N0YWxDb2RlIjoiOTU4MjkiLCJjaXR5IjoiU2FjcmFtZW50byIsInN0YXRlIjoiQ0EiLCJkZWxpdmVyeVN0b3JlTGlzdCI6W3sibm9kZUlkIjoiMzA4MSIsInR5cGUiOiJERUxJVkVSWSJ9XX0sInBvc3RhbENvZGUiOnsidGltZXN0YW1wIjoxNjczMzYyOTQ2NDQ1LCJiYXNlIjoiOTU4MjkifSwibXAiOltdLCJ2YWxpZGF0ZUtleSI6InByb2Q6djI6OTNlMzEzNTQtNmUyYS00OTM0LTk5NzAtYzhhNTczMTE0MjQ2In0%3D; TB_Latency_Tracker_100=1; TB_Navigation_Preload_01=1; TB_SFOU-100=; bm_mi=A91EB1F1CF3EA6BE5C00622A8C382EA1~YAAQEqAkFzDBcB2FAQAAw43DpRIR2IA/mK6aHTuWp7uEwZqR/7x886h6el/xQuEI6w2M//uBfy9fTc+aL27GOHEeAoN2cq/kaaAlqxaqIV1zjAi5RXlY53wJIV7ZqxHBOMM+riJMz3U59ESO3mJPoe0YazGRm5m5NNPdEpzDE5iizxM1ds8pxzqyR2A9vp0cZ1fkgeybuvKmWCmTF1/miCEWeegDllH90ocaKEjmc7ipHFztXyv2DL0QmJPB3uv4cCemqjpeal941QGuBsjyzZnCuHQuop9ClXJzaU/WKBaBt9Vw7Q/eVPvM4wEQcRMs6qcCjQ==~1; bm_sv=F0D8CA4A3BC4ED9B0CB0F3BF26749340~YAAQEqAkF8/CcB2FAQAAiqLDpRJc/gVkuM1aI/+3KYm0QdsL720kfp22Ih6LgfZH2Lce3X8mjk+wy9IjEy9u4Dnkp+EFs8FrGQFnJNgRJ9eeelgj9qXv5DLnb+jIrCRRQbM/UtHarrZgzubSBha/F/Rub+BVo1qUKM0pnkTg6HG5KMf6Lz7KiN0cWP9HQGXcDuJLAuLEg07ioeWN7WqsATXs3qOuX9JMouSGgBfbp+Y9SawISDwVka+2rHqa4kmdPFI=~1; ak_bmsc=4D3E8BF6EC1972C4ED9ABAA9C282643B~000000000000000000000000000000~YAAQEKAkF0jmIg+FAQAA04TIpRIE5O06CPSWmfGP43VITrGDtX/KKqrkBO19wsOfA9Xv1LAqDgDwaOGZKOR2/jMXmsyhZtFa/i7N44FIBgKJoBNthCBXGMMEYu3DjMWWmVELWVqbqeG8WePccyJoeAsyPPePUNZTyvUqAhL10l+5Gm6akEEKvlDIu3TLY00r7msfTnBw/XWsWaFkX4cjl0bkkMG1bqBiVdZcWU4m0LdbtYDAhcjrC8aWcGFNRvD8IijNcgPP5Eu8byJM9pM6yxeq/b3Q6hI6AopLjy/Z0Tbgk0EWeJDSNdZWdgyMWHM/LBYhyA7Oi94uGRyWKCJu7k2ZAsPOFGdCr+WXgQfAZvUtY/4q17hkx9x3S6p6pJL2eGx8duQ5paXtMukEPIxSLVPiK9AGeJ0XOwAbq4j8bAUM6m9iMsxrTRUsJGiBk9s/UU76L8ZhOgLzS1SbVOFfTcUvDHoTmhGPd2/zrK6m77oYsEKPYt9fo17m40fgSwtuKEzLQ/evSMNG; bstc=d1i7UbaQpqrVey-XCCAyUA; auth=MTAyOTYyMDE4jHuQTWxGf098NfQ27NHJCIicZxOdAkCKLIdTyYRx1MhtYr4rPI%2Bb2JP2pFLaDfXVRzu5BCzumdxStSpu6c7HYBczbDtfVHcao91hVKCIBnrj17kGZ7Mu4K7gp6blyLzB767wuZloTfhm7Wk2KcjygmNzsF5Ho8U7SJCh0TVScOm22ujM%2BaM6y6utC0iWw4VLezX3BOg5wff%2B2kwvMLMtBxqyjqF7V9T585knrXnntJ8UMk70P8glgOEpLOprhDfMDCcb9mgycy9jtT1uIyOBHTQInrOueryos9phJFF9NeassEq8x2Oe4OWtrjQjJ%2BlSF02qAbDXDC%2F7Kg5skioU8bLjsKqEEjdaXw22qJbxX%2FOtmRhXYQafKP0buPmrsGduZwArWvxrbgS%2BYi1YUCR5yhAbajmc3a6HQbHZlS9HWyI%3D; mobileweb=0; xptc=assortmentStoreId%2B3081; xpth=x-o-mverified%2Bfalse; xpa=CqTO2|DSZXu|TDUfq|ZHsoc|fE8RT|fRm1d|fjJch|jowo9|mwK0m|pTQK2|tTQ2Y; exp-ck=CqTO21DSZXu3ZHsoc1fE8RT1fRm1d1fjJch1jowo94pTQK21tTQ2Y1; xpm=1%2B1673525658%2Bcugj8sKWSq6sWGlIdWFgII~%2B0; locDataV3=eyJpc0RlZmF1bHRlZCI6dHJ1ZSwiaXNFeHBsaWNpdCI6ZmFsc2UsImludGVudCI6IlNISVBQSU5HIiwicGlja3VwIjpbeyJidUlkIjoiMCIsIm5vZGVJZCI6IjMwODEiLCJkaXNwbGF5TmFtZSI6IlNhY3JhbWVudG8gU3VwZXJjZW50ZXIiLCJub2RlVHlwZSI6IlNUT1JFIiwiYWRkcmVzcyI6eyJwb3N0YWxDb2RlIjoiOTU4MjkiLCJhZGRyZXNzTGluZTEiOiI4OTE1IEdlcmJlciBSb2FkIiwiY2l0eSI6IlNhY3JhbWVudG8iLCJzdGF0ZSI6IkNBIiwiY291bnRyeSI6IlVTIiwicG9zdGFsQ29kZTkiOiI5NTgyOS0wMDAwIn0sImdlb1BvaW50Ijp7ImxhdGl0dWRlIjozOC40ODI2NzcsImxvbmdpdHVkZSI6LTEyMS4zNjkwMjZ9LCJpc0dsYXNzRW5hYmxlZCI6dHJ1ZSwic2NoZWR1bGVkRW5hYmxlZCI6dHJ1ZSwidW5TY2hlZHVsZWRFbmFibGVkIjp0cnVlLCJodWJOb2RlSWQiOiIzMDgxIiwic3RvcmVIcnMiOiIwNjowMC0yMzowMCIsInN1cHBvcnRlZEFjY2Vzc1R5cGVzIjpbIlBJQ0tVUF9DVVJCU0lERSIsIlBJQ0tVUF9JTlNUT1JFIl19XSwic2hpcHBpbmdBZGRyZXNzIjp7ImxhdGl0dWRlIjozOC40NzQ0LCJsb25naXR1ZGUiOi0xMjEuMzQzNywicG9zdGFsQ29kZSI6Ijk1ODI5IiwiY2l0eSI6IlNhY3JhbWVudG8iLCJzdGF0ZSI6IkNBIiwiY291bnRyeUNvZGUiOiJVU0EiLCJnaWZ0QWRkcmVzcyI6ZmFsc2V9LCJhc3NvcnRtZW50Ijp7Im5vZGVJZCI6IjMwODEiLCJkaXNwbGF5TmFtZSI6IlNhY3JhbWVudG8gU3VwZXJjZW50ZXIiLCJhY2Nlc3NQb2ludHMiOm51bGwsInN1cHBvcnRlZEFjY2Vzc1R5cGVzIjpbXSwiaW50ZW50IjoiUElDS1VQIiwic2NoZWR1bGVFbmFibGVkIjpmYWxzZX0sImRlbGl2ZXJ5Ijp7ImJ1SWQiOiIwIiwibm9kZUlkIjoiMzA4MSIsImRpc3BsYXlOYW1lIjoiU2FjcmFtZW50byBTdXBlcmNlbnRlciIsIm5vZGVUeXBlIjoiU1RPUkUiLCJhZGRyZXNzIjp7InBvc3RhbENvZGUiOiI5NTgyOSIsImFkZHJlc3NMaW5lMSI6Ijg5MTUgR2VyYmVyIFJvYWQiLCJjaXR5IjoiU2FjcmFtZW50byIsInN0YXRlIjoiQ0EiLCJjb3VudHJ5IjoiVVMiLCJwb3N0YWxDb2RlOSI6Ijk1ODI5LTAwMDAifSwiZ2VvUG9pbnQiOnsibGF0aXR1ZGUiOjM4LjQ4MjY3NywibG9uZ2l0dWRlIjotMTIxLjM2OTAyNn0sImlzR2xhc3NFbmFibGVkIjp0cnVlLCJzY2hlZHVsZWRFbmFibGVkIjp0cnVlLCJ1blNjaGVkdWxlZEVuYWJsZWQiOnRydWUsImFjY2Vzc1BvaW50cyI6W3siYWNjZXNzVHlwZSI6IkRFTElWRVJZX0FERFJFU1MifV0sImh1Yk5vZGVJZCI6IjMwODEiLCJpc0V4cHJlc3NEZWxpdmVyeU9ubHkiOmZhbHNlLCJzdXBwb3J0ZWRBY2Nlc3NUeXBlcyI6WyJERUxJVkVSWV9BRERSRVNTIl19LCJpbnN0b3JlIjpmYWxzZSwicmVmcmVzaEF0IjoxNjczNTQ3MjYwNjM3LCJ2YWxpZGF0ZUtleSI6InByb2Q6djI6OTNlMzEzNTQtNmUyYS00OTM0LTk5NzAtYzhhNTczMTE0MjQ2In0%3D; AID=wmlspartner%3Dimp_2625896%3Areflectorid%3Dimp_Tfc2fWRRqxyNTSdx-YVKw2naUkAwiY1Wez42Sc0%3Alastupd%3D1673525809273; com.wm.reflector=\"reflectorid:imp_Tfc2fWRRqxyNTSdx-YVKw2naUkAwiY1Wez42Sc0@lastupd:1673527183000@firstcreate:1673520978196\"; xptwg=3477731767:1CD3DDA86BD9A30:49FBCEB:84B95881:7AF85C0B:3F750B3D:; xptwj=rq:32132b447df06b4251f3:17CEWPKMP0Ib+HXJNZBw52jzt4caQTVlTRKChsmAxHABaamUa964GJzfEc2Y/P0s7SH+1Ekzc6qT39o5ff750m7aAmCQk1K8FMcfuxCID6HwJvTggYVwHA05t4iD8onAYiZmM1lSVr7TwcDC3vGj; TS012768cf=01419f1d62e245c1aa091d837c8db62d617896bf257e6c08ab9e6f9dbf3054109380bd5bda87cf5b7ca801cb44ec84046e98ffd482; TS01a90220=01419f1d62e245c1aa091d837c8db62d617896bf257e6c08ab9e6f9dbf3054109380bd5bda87cf5b7ca801cb44ec84046e98ffd482; TS2a5e0c5c027=0820e3fdc4ab2000db53eac5a62cafe0b6ac3e598a954208305ea3cde849e4487870e98ae521aef40865fbff6d1130007b448c44386ff2d89b5c125766da6f3b34d585a2ffa27dccbce2c129f8d0e55513e7d07ba3cfe6685933fa32333f31da; akavpau_p2=1673527783~id=2368b931589cc5319c499ef7b55f28a6; AID=wmlspartner%3Dimp_2625896%3Areflectorid%3Dimp_Tfc2fWRRqxyNTSdx-YVKw2naUkAwiY1Wez42Sc0%3Alastupd%3D1673527222597; TB_SFOU-100=; TS01a90220=012dcd042bd3fd46b78a174a3c2d63c5cdcc7a0a0620eb54a0d037bdbf7c0362d6c78f305a332266dcd595157142a5b6e1018802ac; bstc=d1i7UbaQpqrVey-XCCAyUA; com.wm.reflector=\"reflectorid:imp_Tfc2fWRRqxyNTSdx-YVKw2naUkAwiY1Wez42Sc0@lastupd:1673527222597@firstcreate:1673520978196\"; exp-ck=CqTO21DSZXu3ZHsoc1fE8RT1fRm1d1fjJch1jowo94pTQK21tTQ2Y1; mobileweb=0; vtc=cugj8sKWSq6sWGlIdWFgII; xpa=CqTO2|DSZXu|TDUfq|ZHsoc|fE8RT|fRm1d|fjJch|jowo9|mwK0m|pTQK2|tTQ2Y; xpm=1%2B1673525658%2Bcugj8sKWSq6sWGlIdWFgII~%2B0; xptc=assortmentStoreId%2B3081; xpth=x-o-mverified%2Bfalse; xptwg=2449854846:24DE256F84E1D00:5E9E360:D933741:6B2AEF3C:6D8856E8:; xptwj=rq:0e169c6668f89e0c47d9:DnNG9s0nOKUhPeyxJRMFiKICe57+ogGIDQuNjJX+yIYDdmQdlhjX2TYgqzLKSzEcIDxgmr5BNc15IZtq5DtFGtIqDMN/rxsRkSbuJYNJkaUfIwCo7nYo9TB7T9c=; TS012768cf=012dcd042bd3fd46b78a174a3c2d63c5cdcc7a0a0620eb54a0d037bdbf7c0362d6c78f305a332266dcd595157142a5b6e1018802ac; TS2a5e0c5c027=08a1d948e3ab2000d1fe60939c298b709bd917732e9b984ab3f1863ba70888889e02cc4e60a5c95708632bcf771130003b4db51b5231934d3c9a466fafe3d559a3a1e553c99b87699a61178a7e7096aee1e765b3ce73da9db4ab64f5801cef54; akavpau_p2=1673527823~id=d59944de27ec3399b462038ab7b933cb")
+                .addHeader("dnt", "1")
+                .addHeader("referer", "https://www.usnews.com/")
+                .addHeader("sec-ch-ua", "\"Google Chrome\";v=\"107\", \"Chromium\";v=\"107\", \"Not=A?Brand\";v=\"24\"")
+                .addHeader("sec-ch-ua-mobile", "?0")
+                .addHeader("sec-ch-ua-platform", "\"Linux\"")
+                .addHeader("sec-fetch-dest", "document")
+                .addHeader("sec-fetch-mode", "navigate")
+                .addHeader("sec-fetch-site", "same-origin")
+                .addHeader("sec-fetch-user", "?1")
+                .addHeader("upgrade-insecure-requests", "1")
+                .addHeader("user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36")
+                .build();
+        Response response = client.newCall(request).execute();
+        return response.body().string();
+    }
+}
