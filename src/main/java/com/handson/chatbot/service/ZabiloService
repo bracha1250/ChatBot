@@ -1,0 +1,64 @@
+package com.handson.chatbot.service;
+
+
+import com.google.common.primitives.Longs;
+import okhttp3.*;
+import org.springframework.stereotype.Service;
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static java.lang.Integer.parseInt;
+
+@Service
+public class ZabiloService extends BaseSearchService {
+
+
+    public static final Pattern PRODUCT_PATTERN= Pattern.compile("<h6>([^<]+)<\\/h6><\\/a><\\/div>  ");
+    public static final Pattern PRODUCT_PATTERNPRICE =Pattern.compile("<div class=\\\"tv-product-price tvproduct-name-price-wrapper\\\"><div class=\\\"product-price-and-shipping\\\"><span class=\\\"price\\\">([^<]+)");
+
+    public String search(String keyword) throws Exception {
+        return parseArtistHtml(getZabilo((keyword)));
+    }
+    private String parseArtistHtml(String html) throws Exception {
+        html= html.replaceAll("\r\n"," ").replaceAll("\n"," ");
+   String res="";
+        Matcher matcher = PRODUCT_PATTERN.matcher(html);
+        Matcher matcherPrice = PRODUCT_PATTERNPRICE.matcher(html);
+        while (matcher.find() && matcherPrice.find()) {
+            res += matcher.group(1)  +", price:"+ matcherPrice.group(1)+"<br>\n";
+        }
+
+        return res;
+    }
+    private String getZabilo(String keyword) throws IOException {
+
+        OkHttpClient client = new OkHttpClient().newBuilder()
+                .build();
+        MediaType mediaType = MediaType.parse("text/plain");
+        RequestBody body = RequestBody.create(mediaType, "");
+        Request request = new Request.Builder()
+                .url("https://zabilo.com/en/jolisearch?s=" + keyword)
+                .method("GET", null)
+                .addHeader("authority", "zabilo.com")
+                .addHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
+                .addHeader("accept-language", "he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7")
+                .addHeader("cache-control", "max-age=0")
+                .addHeader("cookie", "PHPSESSID=d849jv9gvm545eal4rh1vjjdgu; PrestaShop-6901d7e3382d442134fca60532648202=def5020093123b1b7bc16a3b4174588e051401cec518902ff48accb5280dff2f369b4d452fce78948cb245f9919a7a4643ba691d45e5ae584c3d252415c0ec64adf8a1eb82628f4ab96a268e70072517f76b75429961a192537dc0c9dbe7c7bdffbd0103248496a33cea2491e7879cfb54375b7fdb85603f03c65176bdd8db314abb323f159cee8229760acc1202f23140740c322fdfe821643455ac36e5edbcc22fe149814d3bebe7655833b43eaf966f561215c1c8e2cb0489af12d6e5081d0019b5218d3844f24ddfd59650508b00791ad5ecb9f0f0b8db1423e3c80e9bb055e5f05de3cfc79d157a2ff628c4c40259b67c50e887390f2037f53280c2db; soundestID=20230110153304-t7O2zBkUV3Ic7JpGTWC88NGWHQ9ippjtdu5WFpHWCVtpx8P4l; omnisendSessionID=obZwaT0ZDOs9SP-20230110153304; _gcl_au=1.1.1477950377.1673364784; _gid=GA1.2.1832427785.1673364785; _dc_gtm_UA-65409349-1=1; _clck=mhr5qh|1|f85|0; __utma=60905895.758319985.1673364785.1673364802.1673364802.1; __utmb=60905895.0.10.1673364802; __utmc=60905895; __utmz=60905895.1673364802.1.1.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided); soundest-views=6; _clsk=167f1gy|1673366416908|7|1|d.clarity.ms/collect; page-views=6; _ga=GA1.2.758319985.1673364785; _ga_R8LLCSF4H7=GS1.1.1673364784.1.1.1673366433.0.0.0")
+                .addHeader("dnt", "1")
+                .addHeader("referer", "https://zabilo.com/en/jolisearch?s=microgal")
+                .addHeader("sec-ch-ua", "\"Google Chrome\";v=\"107\", \"Chromium\";v=\"107\", \"Not=A?Brand\";v=\"24\"")
+                .addHeader("sec-ch-ua-mobile", "?0")
+                .addHeader("sec-ch-ua-platform", "\"Linux\"")
+                .addHeader("sec-fetch-dest", "document")
+                .addHeader("sec-fetch-mode", "navigate")
+                .addHeader("sec-fetch-site", "same-origin")
+                .addHeader("sec-fetch-user", "?1")
+                .addHeader("upgrade-insecure-requests", "1")
+                .addHeader("user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36")
+                .build();
+        Response response = client.newCall(request).execute();
+        return response.body().string();
+    }
+
+}
