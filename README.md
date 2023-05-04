@@ -8,7 +8,7 @@ Scraping is done using **Jsoup**, and combined with the use of:
 ------------
 
 # Technologies used:
-**Spring Boot, Java, Docker ,oop**, Maven, Jsoup, Webhook
+**Spring Boot, Java, Docker ,OOP**, Maven, Jsoup, Webhook
 # Deployed
 currently, deployed on _repl.it_
 you can check it out here:https://appliances-chatbot.brkylynq.repl.co/swagger-ui.html#!/
